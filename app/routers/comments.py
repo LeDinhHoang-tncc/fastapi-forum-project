@@ -38,6 +38,18 @@ def get_comments(post_id: int, db: Session = Depends(get_db)):
     if not post:
         raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
     
-    comments = db.query(Comment).filter(Comment.post_id == post_id).order_by(Comment.created_at.desc()).all()
+    comments = db.query(Comment).filter(Comment.post_id == post_id)\
+        .order_by(Comment.created_at.desc()).all()
     
-    return comments
+    result = []
+    for c in comments:
+        author = db.query(User).filter(User.id == c.author_id).first()
+
+        result.append({
+            "id": c.id,
+            "content": c.content,
+            "author_display_name": author.display_name if author else "Unknown",
+            "created_at": c.created_at,
+        })
+
+    return result

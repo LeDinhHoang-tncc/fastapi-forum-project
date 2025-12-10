@@ -13,7 +13,20 @@ router = APIRouter(prefix="/posts", tags=["Posts"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-
+@router.get("/")
+def get_posts(
+    skip: int = 0, 
+    limit: int = 10, 
+    db: Session = Depends(get_db)
+):
+    posts = (
+    db.query(Post)
+    .order_by(Post.is_pinned.desc(), Post.created_at.desc())
+    .offset(skip)
+    .limit(limit)
+    .all()
+)
+    return posts
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
@@ -65,14 +78,6 @@ def create_post(title: str, content: str,
         }
     }
 
-@router.get("/")
-def get_posts(
-    skip: int = 0, 
-    limit: int = 10, 
-    db: Session = Depends(get_db)
-):
-    posts = db.query(Post).order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
-    return posts
 
 @router.get("/{post_id}")
 def get_post_detail(post_id: int, db: Session = Depends(get_db)):
@@ -83,3 +88,39 @@ def get_post_detail(post_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
         
     return post
+
+@router.put("/pin/{post_id}")
+def pin_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Bạn không phải admin")
+
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+
+    post.is_pinned = True
+    db.commit()
+
+    return {"message": f"Ghim bài viết {post.title} thành công"}
+
+@router.put("/unpin/{post_id}")
+def unpin_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Bạn không phải admin")
+
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+
+    post.is_pinned = False
+    db.commit()
+
+    return {"message": f"Bỏ ghim bài viết {post.title} thành công"}
