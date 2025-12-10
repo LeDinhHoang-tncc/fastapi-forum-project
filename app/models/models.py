@@ -12,6 +12,10 @@ class User(Base):
     password = Column(String(200), nullable=False)
     reputation = Column(Integer, default=0)
     is_banned = Column(Boolean, default=False)
+    role = Column(String(50), default="user")
+    email = Column(String, unique=True, nullable=True)
+    display_name = Column(String, nullable=True)
+
 
     posts = relationship("Post", back_populates="author")
     comments = relationship("Comment", back_populates="author")
