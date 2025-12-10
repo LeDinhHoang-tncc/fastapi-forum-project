@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import Comment, Post, User # Model của bạn đã có đủ 3 cái này rồi
+from app.models.models import Comment, Post, User
 from app.routers.posts import get_current_user
 
 router = APIRouter(prefix="/comments", tags=["Comments"])

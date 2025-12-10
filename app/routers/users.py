@@ -11,9 +11,9 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def read_users_me(current_user: User = Depends(get_current_user)):
     return {
         "id": current_user.id,
-        "username": current_user.username,
-        "reputation": current_user.reputation,
-        "is_banned": current_user.is_banned
+        "Tên người dùng": current_user.username,
+        "Điểm uy tín": current_user.reputation,
+        "Trạng thái tài khoản": current_user.is_banned
     }
 
 @router.get("/{user_id}")
@@ -24,8 +24,8 @@ def read_user_profile(user_id: int, db: Session = Depends(get_db)):
     
     return {
         "id": user.id,
-        "username": user.username,
-        "reputation": user.reputation,
+        "Tên người dùng": user.username,
+        "Điểm uy tín": user.reputation,
     }
 
 @router.put("/change-password")
