@@ -6,6 +6,7 @@ from app.utils.security import create_access_token
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import List
+from sqlalchemy.orm import joinedload
 
 from app.utils.security import SECRET_KEY, ALGORITHM
 
@@ -21,12 +22,32 @@ def get_posts(
 ):
     posts = (
     db.query(Post)
+    .options(joinedload(Post.author))
     .order_by(Post.is_pinned.desc(), Post.created_at.desc())
     .offset(skip)
     .limit(limit)
     .all()
 )
-    return posts
+    results = []
+    for post in posts:
+        author_name = "Người dùng ẩn"
+        if post.author:
+            if post.author.display_name:
+                author_name = post.author.display_name
+            else:
+                author_name = post.author.username
+
+        results.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "created_at": post.created_at,
+            "author_id": post.author_id,
+            "author_name": author_name,
+            "reputation": post.author.reputation if post.author else 0
+        })
+        
+    return results
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
