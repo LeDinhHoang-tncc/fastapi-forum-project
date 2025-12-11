@@ -103,3 +103,64 @@
 .action-btn:hover {
   background: #e4e6eb;
 }
+
+/* -- LOGIN / REGISTER FORM - */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.auth-box {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.auth-box h2 {
+  margin-bottom: 20px;
+  color: #1877f2;
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box; 
+}
+
+.auth-box input:focus {
+  border-color: #1877f2;
+  outline: none;
+}
+
+.full-width {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  margin-top: 10px;
+}
+
+.auth-link {
+  margin-top: 15px;
+  font-size: 0.9rem;
+}
+
+.auth-link a {
+  color: #1877f2;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.auth-link a:hover {
+  text-decoration: underline;
+}
