@@ -7,12 +7,18 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import List
 from sqlalchemy.orm import joinedload
+from pydantic import BaseModel
+
 
 from app.utils.security import SECRET_KEY, ALGORITHM
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+class PostCreate(BaseModel):
+    title: str
+    content: str
 
 @router.get("/")
 def get_posts(
@@ -72,16 +78,21 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 @router.post("/create")
-def create_post(title: str, content: str,
-                db: Session = Depends(get_db),
-                current_user: User = Depends(get_current_user)):
-
-    if len(title) < 2:
+def create_post(
+    post: PostCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if len(post.title) > 200:
+        raise HTTPException(status_code=400, detail="Tiêu đề quá dài (tối đa 200 ký tự)")
+    if len(post.title) < 2:
         raise HTTPException(status_code=400, detail="Tiêu đề quá ngắn")
-
+    if len(post.content) > 5000:
+        raise HTTPException(status_code=400, detail="Nội dung bài viết quá dài (tối đa 5000 ký tự)")
+    
     new_post = Post(
-        title=title,
-        content=content,
+        title=post.title,
+        content=post.content,
         author_id=current_user.id
     )
 
@@ -89,15 +100,7 @@ def create_post(title: str, content: str,
     db.commit()
     db.refresh(new_post)
 
-    return {
-        "message": "Post created",
-        "post": {
-            "id": new_post.id,
-            "title": new_post.title,
-            "author": current_user.username,
-            "created_at": new_post.created_at
-        }
-    }
+    return {"message": "Đăng bài thành công", "id": new_post.id}
 
 
 @router.get("/{post_id}")

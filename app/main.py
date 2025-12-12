@@ -38,7 +38,7 @@ def decay_reputation_job():
         
         db.commit()
     except Exception as e:
-        print(f"Lỗi khi chạy job: {e}")
+        print(f"Lỗi khi chạy: {e}")
     finally:
         db.close()
 

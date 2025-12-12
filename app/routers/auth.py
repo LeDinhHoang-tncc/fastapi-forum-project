@@ -20,12 +20,6 @@ def get_db():
 # --- ĐĂNG KÝ ---
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(user_input: UserCreate, db: Session = Depends(get_db)): 
-    
-    if user_input.password != user_input.confirm_password:
-        raise HTTPException(
-            status_code=400,
-            detail="Mật khẩu xác nhận không khớp"
-        )
 
     user_exists = db.query(User).filter(User.username == user_input.username).first()
     if user_exists:
@@ -41,11 +35,13 @@ def register(user_input: UserCreate, db: Session = Depends(get_db)):
             detail="Email đã được sử dụng"
         )
 
+    final_display_name = user_input.display_name if user_input.display_name else user_input.username
     new_user = User(
         username=user_input.username,
         email=user_input.email,
-        display_name=user_input.display_name,
-        password=hash_password(user_input.password)
+        display_name=final_display_name,
+        password=hash_password(user_input.password),
+        role="member"
     )
 
     db.add(new_user)

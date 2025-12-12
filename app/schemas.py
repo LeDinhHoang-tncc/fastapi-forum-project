@@ -1,13 +1,11 @@
-from pydantic import BaseModel
 from pydantic import BaseModel, EmailStr, Field
-
+from typing import Optional
 
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=30)
     email: EmailStr
-    display_name: str = Field(min_length=2, max_length=50)
+    display_name: Optional[str] = None
     password: str = Field(min_length=6)
-    confirm_password: str = Field(min_length=6)
 
 class Token(BaseModel):
     access_token: str

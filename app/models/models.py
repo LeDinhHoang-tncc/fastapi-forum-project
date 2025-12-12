@@ -12,7 +12,7 @@ class User(Base):
     password = Column(String(200), nullable=False)
     reputation = Column(Integer, default=0)
     is_banned = Column(Boolean, default=False)
-    role = Column(String(50), default="user")
+    role = Column(String(50), default="member")
     email = Column(String, unique=True, nullable=True)
     display_name = Column(String, nullable=True)
 

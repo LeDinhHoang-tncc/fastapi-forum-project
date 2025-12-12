@@ -11,12 +11,12 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def read_users_me(current_user: User = Depends(get_current_user)):
     return {
         "id": current_user.id,
-        "Tên đăng nhập": current_user.username,
-        "Tên hiển thị": current_user.display_name,
+        "username": current_user.username,    
+        "display_name": current_user.display_name, 
         "email": current_user.email,
-        "Điểm uy tín": current_user.reputation,
-        "Vai trò": current_user.role,
-        "Trạng thái": current_user.is_banned
+        "reputation": current_user.reputation,  
+        "role": current_user.role,                
+        "is_banned": current_user.is_banned
     }
 
 @router.get("/{user_id}")
