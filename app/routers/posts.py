@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import List, Optional
 from pydantic import BaseModel
-from sqlalchemy import func, case, exists
+from sqlalchemy import func, case, exists, or_
 
 
 
@@ -38,6 +38,7 @@ def get_current_user_optional(
 def get_posts(
     skip: int = 0, 
     limit: int = 10, 
+    search: Optional[str] = None, 
     db: Session = Depends(get_db),
     token: Optional[str] = Header(None, alias="Authorization")
 ):
@@ -55,12 +56,21 @@ def get_posts(
         except:
             pass 
 
+    search_filter = True
+    if search:
+        search_term = f"%{search}%"
+        search_filter = or_(
+            Post.title.ilike(search_term),
+            Post.content.ilike(search_term)
+        )
+
     pinned_posts = []
     if skip == 0:
         pinned_posts = (
             db.query(Post)
             .join(Post.author)
             .filter(Post.is_pinned == True) 
+            .filter(search_filter) 
             .order_by(Post.created_at.desc())
             .all()
         )
@@ -69,6 +79,7 @@ def get_posts(
         db.query(Post)
         .join(Post.author)
         .filter(Post.is_pinned == False)
+        .filter(search_filter)
         .options(joinedload(Post.author))
         .order_by(
             func.date(Post.created_at).desc(),    

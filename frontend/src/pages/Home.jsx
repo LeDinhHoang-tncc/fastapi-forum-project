@@ -10,23 +10,37 @@ function Home() {
     const [showModal, setShowModal] = useState(false);
     const [newTitle, setNewTitle] = useState("");
     const [newContent, setNewContent] = useState("");
+    const [searchTerm, setSearchTerm] = useState(""); 
+    const [appliedSearch, setAppliedSearch] = useState("");
     const MAX_TITLE_LENGTH = 200;
     const MAX_CONTENT_LENGTH = 5000;
     const [page, setPage] = useState(1);
 
     const fetchPosts = async () => {
-    setLoading(true); 
-    try {
-      const limit = 10;
-      const skip = (page - 1) * limit; 
-      const response = await api.get(`/posts/?skip=${skip}&limit=${limit}`);
-      setPosts(response.data);
-    } catch (error) {
-      console.error("Lỗi:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setLoading(true); 
+        try {
+            const limit = 10;
+            const skip = (page - 1) * limit; 
+            
+            let url = `/posts/?skip=${skip}&limit=${limit}`;
+            if (appliedSearch) {
+                url += `&search=${encodeURIComponent(appliedSearch)}`;
+            }
+
+            const response = await api.get(url);
+            setPosts(response.data);
+        } catch (error) {
+            console.error("Lỗi:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        setPage(1); 
+        setAppliedSearch(searchTerm); 
+    };
 
     const checkLoginStatus = async () => {
         const token = localStorage.getItem('access_token');
@@ -130,7 +144,7 @@ function Home() {
     useEffect(() => {
         fetchPosts();
         checkLoginStatus();
-    }, [page]);
+    }, [page, appliedSearch]);
 
     const formatTimeAgo = (dateString) => {
         if (!dateString) return "";
@@ -239,6 +253,38 @@ function Home() {
             )}
 
             <main className="feed-container">
+                <div className="search-container" style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                    <form onSubmit={handleSearch} style={{ display: 'flex', width: '100%', gap: '10px' }}>
+                        <input 
+                            type="text" 
+                            placeholder="Tìm kiếm bài viết..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ 
+                                flex: 1, 
+                                padding: '10px', 
+                                borderRadius: '8px', 
+                                border: '1px solid #ddd' 
+                            }}
+                        />
+                        <button type="submit" className="btn-primary">
+                            Tìm kiếm
+                        </button>
+                        {appliedSearch && (
+                            <button 
+                                type="button" 
+                                className="btn-secondary"
+                                onClick={() => {
+                                    setSearchTerm("");
+                                    setAppliedSearch("");
+                                    setPage(1);
+                                }}
+                            >
+                                Xóa lọc
+                            </button>
+                        )}
+                    </form>
+                </div>
                 {loading ? (
                 <div className="loading">Đang tải...</div>
                 ) : (
@@ -255,7 +301,7 @@ function Home() {
                                 title="Điểm uy tín" 
                                 style={{ 
                                     marginLeft: '8px', 
-                                    color: '#ffffffff',
+                                    color: '#000000ff',
                                     fontWeight: 'bold', 
                                     fontSize: '0.9em',
                                     backgroundColor: '#e6ffa2ff', 
@@ -273,14 +319,14 @@ function Home() {
                         <p className="post-content">{post.content}</p>
                         </div>
                         <div className="post-footer">
-                        <button 
+                            <button 
                                 className={`action-btn ${post.has_voted ? 'liked' : ''}`} 
                                 onClick={() => handleVote(post.id)}
                                 style={{ 
                                     color: post.has_voted ? '#2563eb' : 'inherit',
                                     fontWeight: post.has_voted ? 'bold' : 'normal'
                                 }}>
-                                {post.has_voted ? 'Đã thích' : 'Thích'} ({post.vote_count || 0})
+                                {post.has_voted ? 'Đã thích' : 'Thích'} {post.vote_count || 0}
                             </button>
                         <button className="action-btn">Bình luận</button>
                         </div>
