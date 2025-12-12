@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, get_db
-from app.models.models import Post, User
+from app.models.models import Post, User, Vote
 from app.utils.security import create_access_token
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import joinedload
 from pydantic import BaseModel
+from sqlalchemy import func, case, exists
+
 
 
 from app.utils.security import SECRET_KEY, ALGORITHM
@@ -20,28 +22,70 @@ class PostCreate(BaseModel):
     title: str
     content: str
 
+def get_current_user_optional(
+    token: str = Depends(oauth2_scheme), 
+    db: Session = Depends(get_db)
+):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            return None
+        return db.query(User).filter(User.username == username).first()
+    except:
+        return None
+
 @router.get("/")
 def get_posts(
     skip: int = 0, 
     limit: int = 10, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    token: Optional[str] = Header(None, alias="Authorization")
 ):
+    current_user_id = None
+    if token:
+        try:
+            scheme, _, param = token.partition(" ")
+            actual_token = param if scheme.lower() == 'bearer' else token
+            
+            payload = jwt.decode(actual_token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            user = db.query(User).filter(User.username == username).first()
+            if user:
+                current_user_id = user.id
+        except:
+            pass 
+
     posts = (
-    db.query(Post)
-    .options(joinedload(Post.author))
-    .order_by(Post.is_pinned.desc(), Post.created_at.desc())
-    .offset(skip)
-    .limit(limit)
-    .all()
-)
+        db.query(Post)
+        .join(Post.author)
+        .options(joinedload(Post.author))
+        .order_by(
+            Post.is_pinned.desc(),
+            func.date(Post.created_at).desc(),
+            case((User.role == "admin", 1), else_=0).desc(),
+            User.reputation.desc(),
+            Post.created_at.desc()
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
     results = []
     for post in posts:
         author_name = "Người dùng ẩn"
         if post.author:
-            if post.author.display_name:
-                author_name = post.author.display_name
-            else:
-                author_name = post.author.username
+            author_name = post.author.display_name or post.author.username
+
+        vote_count = db.query(Vote).filter(Vote.post_id == post.id).count()
+        
+        has_voted = False
+        if current_user_id:
+            has_voted = db.query(exists().where(
+                Vote.post_id == post.id,
+                Vote.user_id == current_user_id
+            )).scalar()
 
         results.append({
             "id": post.id,
@@ -50,11 +94,13 @@ def get_posts(
             "created_at": post.created_at,
             "author_id": post.author_id,
             "author_name": author_name,
-            "reputation": post.author.reputation if post.author else 0
+            "reputation": post.author.reputation if post.author else 0,
+            "is_pinned": post.is_pinned,
+            "vote_count": vote_count,  
+            "has_voted": has_voted     
         })
         
     return results
-
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -102,6 +148,24 @@ def create_post(
 
     return {"message": "Đăng bài thành công", "id": new_post.id}
 
+@router.delete("/{post_id}")
+def delete_post(
+    post_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    
+    if not post:
+        raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+    if post.author_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=403, detail="Bạn không có quyền xóa bài viết này")
+    
+    db.delete(post)
+    db.commit()
+
+    return {"message": "Xóa bài viết thành công"}
 
 @router.get("/{post_id}")
 def get_post_detail(post_id: int, db: Session = Depends(get_db)):
@@ -112,6 +176,45 @@ def get_post_detail(post_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
         
     return post
+
+@router.post("/{post_id}/vote")
+def vote_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+
+    vote_query = db.query(Vote).filter(
+        Vote.post_id == post_id, 
+        Vote.user_id == current_user.id
+    )
+    found_vote = vote_query.first()
+
+    if found_vote:
+        db.delete(found_vote)
+        
+        if post.author.reputation is None:
+            post.author.reputation = 0
+        
+        post.author.reputation -= 1  
+        
+        db.commit()
+        return {"message": "Đã bỏ bình chọn"}
+        
+    else:
+        new_vote = Vote(post_id=post_id, user_id=current_user.id)
+        db.add(new_vote)
+        
+        if post.author.reputation is None:
+            post.author.reputation = 0
+            
+        post.author.reputation += 1
+        
+        db.commit()
+        return {"message": "Đã bình chọn thành công"}
 
 @router.put("/pin/{post_id}")
 def pin_post(

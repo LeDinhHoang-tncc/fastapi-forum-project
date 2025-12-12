@@ -56,10 +56,69 @@ function Home() {
     }
   };
 
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/posts/${postId}`);
+      alert("Xóa bài viết thành công!");
+      setPosts(posts.filter(post => post.id !== postId));
+    } catch (error) {
+      console.error("Lỗi xóa bài:", error);
+      alert("Không thể xóa bài viết: " + (error.response?.data?.detail || "Lỗi không xác định"));
+    }
+  };
+
+  const handleTogglePin = async (post) => {
+    const action = post.is_pinned ? "unpin" : "pin";
+    const confirmMessage = post.is_pinned 
+        ? "Bạn muốn bỏ ghim bài viết này?" 
+        : "Bạn muốn ghim bài viết này lên đầu?";
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+        await api.put(`/posts/${action}/${post.id}`);
+        alert(post.is_pinned ? "Đã bỏ ghim!" : "Đã ghim bài viết!");
+        fetchPosts();
+    } catch (error) {
+        console.error("Lỗi ghim bài:", error);
+        alert("Lỗi: " + (error.response?.data?.detail || "Không thể thực hiện hành động"));
+    }
+  };
+
   const handleLogout = () => {
     if (window.confirm("Bạn chắc chắn muốn đăng xuất?")) {
       localStorage.removeItem('access_token');
       setUser(null);
+    }
+  };
+
+  const handleVote = async (postId) => {
+    if (!user) {
+      alert("Bạn cần đăng nhập để thực hiện hành động này!");
+      return;
+    }
+
+    try {
+      await api.post(`/posts/${postId}/vote`);
+      
+      setPosts(posts.map(post => {
+        if (post.id === postId) {
+          const isVotedNow = !post.has_voted;
+          return {
+            ...post,
+            has_voted: isVotedNow,
+            vote_count: isVotedNow ? post.vote_count + 1 : post.vote_count - 1
+          };
+        }
+        return post;
+      }));
+    } catch (error) {
+      console.error("Lỗi vote:", error);
+      alert("Có lỗi xảy ra khi bình chọn.");
     }
   };
 
@@ -166,9 +225,9 @@ function Home() {
                   </div>
                 </div>
                 <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Hủy</button>
-                <button type="submit" className="btn-primary">Đăng ngay</button>
-              </div>
+                    <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Hủy</button>
+                    <button type="submit" className="btn-primary">Đăng ngay</button>
+                </div>
             </form>
           </div>
         </div>
@@ -181,9 +240,26 @@ function Home() {
           <div className="post-list">
             {posts.map((post) => (
               <article key={post.id} className="post-card">
-                <h3 className="post-title">{post.title}</h3>
+                <h3 className="post-title">
+                    {post.is_pinned && <span title="Bài viết đã ghim" style={{ marginRight: '8px' }}>📌</span>}
+                    {post.title}
+                </h3>
                 <div className="post-meta">
-                  <span>Đăng bởi <strong className="author-name">{post.author_name}</strong></span>
+                  <span>Đăng bởi <strong className="author-name">{post.author_name}</strong>                    
+                  <span 
+                        title="Điểm uy tín" 
+                        style={{ 
+                            marginLeft: '8px', 
+                            color: '#ffffffff',
+                            fontWeight: 'bold', 
+                            fontSize: '0.9em',
+                            backgroundColor: '#e6ffa2ff', 
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                        }}
+                    >
+                       ★ {post.reputation}
+                    </span></span>
                   <span className="separator">•</span>
                   <span>{formatTimeAgo(post.created_at)}</span>
                 </div>
@@ -192,9 +268,34 @@ function Home() {
                   <p className="post-content">{post.content}</p>
                 </div>
                 <div className="post-footer">
-                  <button className="action-btn">Thích</button>
+                  <button 
+                        className={`action-btn ${post.has_voted ? 'liked' : ''}`} 
+                        onClick={() => handleVote(post.id)}
+                        style={{ 
+                            color: post.has_voted ? '#2563eb' : 'inherit',
+                            fontWeight: post.has_voted ? 'bold' : 'normal'
+                        }}>
+                        {post.has_voted ? 'Đã thích' : 'Thích'} ({post.vote_count || 0})
+                    </button>
                   <button className="action-btn">Bình luận</button>
                 </div>
+                    <div className="admin-actions" style={{ marginLeft: 'auto', display: 'flex', gap: '10px', marginTop: `10px` }}>
+                        {user && user.role === "admin" && (
+                            <button 
+                                className="action-btn" 
+                                onClick={() => handleTogglePin(post)}
+                                style={{ color: post.is_pinned ? '#d97706' : '#059669', fontWeight: 'bold' }}
+                            >
+                                {post.is_pinned ? "Bỏ ghim" : "Ghim bài"}
+                            </button>
+                        )}
+
+                        {user && (user.id === post.author_id || user.role === "admin") && (
+                            <button className="action-btn delete-btn" onClick={() => handleDeletePost(post.id)} style={{ color: 'red' }}>
+                                Xóa bài
+                            </button>
+                        )}
+                    </div>
               </article>
             ))}
           </div>

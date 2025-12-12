@@ -91,6 +91,20 @@
   display: flex;
   gap: 10px;
 }
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.delete-btn:hover {
+    text-decoration: underline;
+    background-color: #ffeef0;
+}
+
 .action-btn {
   background: #f0f2f5;
   border: none;
@@ -164,11 +178,11 @@
 .auth-link a:hover {
   text-decoration: underline;
 }
-/* --- MODAL (KHUNG VIẾT BÀI) --- */
+
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5); /* Nền tối mờ */
+  background-color: rgba(0, 0, 0, 0.5); 
   display: flex;
   justify-content: center;
   align-items: center;
