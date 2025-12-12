@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal, get_db
 from app.models.models import Post, User, Vote
 from app.utils.security import create_access_token
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import List, Optional
-from sqlalchemy.orm import joinedload
 from pydantic import BaseModel
 from sqlalchemy import func, case, exists
 
@@ -56,21 +55,33 @@ def get_posts(
         except:
             pass 
 
-    posts = (
+    pinned_posts = []
+    if skip == 0:
+        pinned_posts = (
+            db.query(Post)
+            .join(Post.author)
+            .filter(Post.is_pinned == True) 
+            .order_by(Post.created_at.desc())
+            .all()
+        )
+
+    regular_posts = (
         db.query(Post)
         .join(Post.author)
+        .filter(Post.is_pinned == False)
         .options(joinedload(Post.author))
         .order_by(
-            Post.is_pinned.desc(),
-            func.date(Post.created_at).desc(),
-            case((User.role == "admin", 1), else_=0).desc(),
-            User.reputation.desc(),
-            Post.created_at.desc()
+            func.date(Post.created_at).desc(),    
+            case((User.role == "admin", 1), else_=0).desc(), 
+            User.reputation.desc(),                
+            Post.created_at.desc()               
         )
-        .offset(skip)
-        .limit(limit)
+        .offset(skip) 
+        .limit(limit) 
         .all()
     )
+
+    posts = pinned_posts + regular_posts
 
     results = []
     for post in posts:

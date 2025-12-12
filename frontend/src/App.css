@@ -118,6 +118,119 @@
   background: #e4e6eb;
 }
 
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin: 30px 0;
+}
+
+.pagination-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+  transform: none;
+  box-shadow: none;
+}
+
+.pagination-info {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #111827;
+  min-width: 30px;
+  text-align: center;
+}
+
+.search-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 25px;
+  gap: 10px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.search-wrapper {
+  position: relative;
+  flex-grow: 1;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 12px 12px 40px; 
+  border: 1px solid #d1d5db;
+  border-radius: 99px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+.clear-btn:hover { color: #4b5563; }
+
+.search-btn {
+  padding: 0 24px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 99px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-btn:hover {
+  background-color: #2563eb;
+}
+
 /* -- LOGIN / REGISTER FORM - */
 .auth-container {
   display: flex;
