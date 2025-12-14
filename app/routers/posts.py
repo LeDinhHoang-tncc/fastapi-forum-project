@@ -1,16 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal, get_db
-from app.models.models import Post, User, Vote
+from app.models.models import Post, User, Vote, Comment
 from app.utils.security import create_access_token
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import List, Optional
 from pydantic import BaseModel
 from sqlalchemy import func, case, exists, or_
-
-
-
 from app.utils.security import SECRET_KEY, ALGORITHM
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
@@ -20,7 +17,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 class PostCreate(BaseModel):
     title: str
     content: str
-
+class PostUpdate(BaseModel):
+    title: str
+    content: str
 def get_current_user_optional(
     token: str = Depends(oauth2_scheme), 
     db: Session = Depends(get_db)
@@ -94,11 +93,14 @@ def get_posts(
 
     posts = pinned_posts + regular_posts
 
+
     results = []
     for post in posts:
         author_name = "Người dùng ẩn"
         if post.author:
             author_name = post.author.display_name or post.author.username
+
+        comment_count = db.query(Comment).filter(Comment.post_id == post.id).count()
 
         vote_count = db.query(Vote).filter(Vote.post_id == post.id).count()
         
@@ -119,10 +121,12 @@ def get_posts(
             "reputation": post.author.reputation if post.author else 0,
             "is_pinned": post.is_pinned,
             "vote_count": vote_count,  
-            "has_voted": has_voted     
+            "has_voted": has_voted,
+            "comment_count": comment_count
         })
         
     return results
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -188,6 +192,34 @@ def delete_post(
     db.commit()
 
     return {"message": "Xóa bài viết thành công"}
+
+@router.put("/{post_id}")
+def update_post(
+    post_id: int,
+    post_update: PostUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    
+    if not post:
+        raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
+    
+    if post.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền sửa bài viết này")
+
+    if len(post_update.title) > 200:
+        raise HTTPException(status_code=400, detail="Tiêu đề quá dài")
+    if len(post_update.content) > 5000:
+        raise HTTPException(status_code=400, detail="Nội dung quá dài")
+
+    post.title = post_update.title
+    post.content = post_update.content
+    
+    db.commit()
+    db.refresh(post)
+    
+    return {"message": "Cập nhật bài viết thành công", "id": post.id}
 
 @router.get("/{post_id}")
 def get_post_detail(post_id: int, db: Session = Depends(get_db)):

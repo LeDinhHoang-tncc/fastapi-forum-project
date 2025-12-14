@@ -4,8 +4,26 @@ from app.database import get_db
 from app.models.models import User
 from app.routers.posts import get_current_user
 from app.utils.security import hash_password 
+from pydantic import BaseModel
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+@router.get("/")
+def read_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Bạn không phải admin")
+
+    users = db.query(User).offset(skip).limit(limit).all()
+    return users
 
 @router.get("/me")
 def read_users_me(current_user: User = Depends(get_current_user)):
@@ -26,9 +44,9 @@ def read_user_profile(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User không tồn tại")
 
     return {
-        "Tên hiển thị": user.display_name,
-        "Điểm uy tín": user.reputation,
-        "Trạng thái": user.is_banned
+        "display_name": user.display_name,
+        "reputation": user.reputation,
+        "is_banned": user.is_banned
     }
 
 @router.put("/change-password")
@@ -112,3 +130,28 @@ def unban_user(
     db.commit()
 
     return {"message": f"Đã unban user {user.username}"}
+
+@router.put("/{user_id}/role")
+def update_user_role(
+    user_id: int, 
+    role_data: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền thực hiện hành động này")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User không tồn tại")
+    
+    if user.id == current_user.id:
+         raise HTTPException(status_code=400, detail="Không thể tự thay đổi quyền của chính mình")
+
+    if role_data.role not in ["admin", "member"]:
+        raise HTTPException(status_code=400, detail="Role không hợp lệ")
+
+    user.role = role_data.role
+    db.commit()
+
+    return {"message": f"Đã cập nhật user {user.username} thành {user.role}"}
