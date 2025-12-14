@@ -47,7 +47,7 @@ Dự án **Forum / Diễn đàn mã nguồn mở** xây dựng bằng **FastAPI 
 ### 1️.Clone repository
 
 ```bash
-git clone <repository-url>
+git clone <https://github.com/LeDinhHoang-tncc/fastapi-forum-project.git>
 cd fastapi-forum-project
 ```
 
