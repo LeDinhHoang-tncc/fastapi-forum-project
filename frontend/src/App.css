@@ -4,22 +4,7 @@
   background-color: #f0f2f5;
 }
 
-.navbar {
-  background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 0 15px;
-}
-.navbar-content {
-  max-width: 700px;
-  margin: 0 auto;
-  height: 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+
 .logo { font-size: 1.4rem; color: #1877f2; margin: 0; }
 .btn-primary { background: #1877f2; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
 

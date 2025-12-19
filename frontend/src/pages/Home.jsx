@@ -3,26 +3,46 @@ import api from '../api';
 import '../App.css';
 import { Link } from 'react-router-dom';
 
-    const Badge = ({ badge }) => {
-        if (!badge) return null;
-        return (
-            <span style={{
-                backgroundColor: badge.color,
-                color: 'white',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                marginLeft: '5px',
-                fontWeight: 'bold',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '2px'
-            }}>
-                {badge.name}
-            </span>
-        );
-    };
+const Badge = ({ badge }) => {
+    if (!badge) return null;
+    return (
+        <span style={{
+            backgroundColor: badge.color,
+            color: 'white',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontSize: '10px',
+            marginLeft: '5px',
+            fontWeight: 'bold',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '2px'
+        }}>
+            {badge.name}
+        </span>
+    );
+};
+const menuButtonStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    border: 'none',
+    background: 'none',
+    textAlign: 'left',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#1c1e21',
+    display: 'block',
+    transition: 'background 0.2s',
+    hover: { backgroundColor: '#f2f2f2' }
+};
 
+const menuItemStyle = {
+    padding: '12px 16px',
+    fontSize: '14px',
+    color: '#1c1e21',
+    cursor: 'pointer',
+    transition: 'background 0.2s'
+};
 const dropdownStyles = {
     menuContainer: { position: 'relative', display: 'inline-block' },
     menuBtn: { border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px', color: '#65676b', fontWeight: 'bold', fontSize: '16px' },
@@ -266,7 +286,12 @@ const formatTimeAgo = (dateString) => {
 function Home() {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const userMenuRef = useRef(null);
     const [user, setUser] = useState(null);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [newTitle, setNewTitle] = useState("");
     const [newContent, setNewContent] = useState("");
@@ -287,7 +312,7 @@ function Home() {
     const [activeMenuPostId, setActiveMenuPostId] = useState(null);
     const postMenuRef = useRef(null);
 
-        useEffect(() => {
+    useEffect(() => {
         function handleClickOutside(event) {
             if (postMenuRef.current && !postMenuRef.current.contains(event.target)) {
                 setActiveMenuPostId(null);
@@ -296,6 +321,31 @@ function Home() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+
+        if (newPassword.length < 6) {
+            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            alert("Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
+        try {
+            await api.put(`/users/change-password?new_password=${encodeURIComponent(newPassword)}`);
+            
+            alert("Đổi mật khẩu thành công!");
+            setShowPasswordModal(false);
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (error) {
+            alert("Lỗi: " + (error.response?.data?.detail || "Không thể đổi mật khẩu"));
+        }
+    };
 
     const fetchPosts = async () => {
         setLoading(true); 
@@ -737,83 +787,112 @@ function Home() {
 
     return (
         <div className="app-container">
-            <header className="navbar">
-                <div className="navbar-content">
-                    <h1 className="logo">Diễn Đàn Sinh Viên</h1>
-                    <div className="nav-actions">
+            <header className="navbar" style={{ padding: '0 20px', height: '65px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                <div className="navbar-content" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
+                    <h1 className="logo" style={{ fontSize: '24px', color: '#2563eb', margin: 0 }}>Diễn Đàn Sinh Viên</h1>
+                    <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                         {user ? (
-                        <div className="user-menu">
-                            <span className="welcome-text">
-                            Xin chào, <strong>{user.display_name}</strong>
-                            </span>
-                            
-                            <button 
-                            className="btn-primary" 
-                            onClick={() => setShowModal(true)}
-                            style={{marginLeft: '10px', marginRight: '10px'}}>
-                            Viết bài
-                            </button>
+                            <>
+                                <button 
+                                    className="btn-primary" 
+                                    onClick={() => setShowModal(true)}
+                                    style={{ padding: '8px 16px', borderRadius: '20px', fontWeight: '600' }}
+                                >
+                                    + Viết bài
+                                </button>
+                                <div style={{ position: 'relative' }} ref={userMenuRef}>
+                                    <div 
+                                        onClick={() => setShowUserMenu(!showUserMenu)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',padding: '5px 10px',borderRadius: '8px',backgroundColor: showUserMenu ? '#f0f2f5' : 'transparent',transition: '0.2s'}}>
+                                        <div style={{ width: '35px', height: '35px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                            {user.display_name?.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span style={{ fontWeight: '500', color: '#333' }}>{user.display_name}</span>
+                                        <span style={{ fontSize: '10px' }}>{showUserMenu ? '▲' : '▼'}</span>
+                                    </div>
+                                    {showUserMenu && (
+                                        <div style={{position: 'absolute',right: 0,top: '110%',width: '220px',backgroundColor: 'white',borderRadius: '12px',boxShadow: '0 4px 20px rgba(0,0,0,0.15)',zIndex: 1000,overflow: 'hidden',padding: '8px 0'}}>
+                                            <div style={{ padding: '10px 16px', borderBottom: '1px solid #eee', marginBottom: '5px' }}>
+                                                <div style={{ fontSize: '12px', color: '#65676b' }}>Tài khoản</div>
+                                                <div style={{ fontWeight: 'bold', truncate: 'true' }}>{user.email}</div>
+                                            </div>
 
-                            <button 
-                            className="btn-primary" onClick={handleLogout}
-                            style={{marginRight: '10px'}}>
-                            Đăng xuất
-                            </button>
-                            {user && user.role === 'admin' && (
-                                <Link to="/admin" style={{ 
-                                    marginRight: '15px', 
-                                    textDecoration: 'none', 
-                                    color: 'white', 
-                                    background: '#007bff', 
-                                    padding: '8px 12px', 
-                                    borderRadius: '5px',
-                                    fontWeight: 'bold',
-                                    display: 'inline-flex',
-                                    alignItems: 'center'
-                                }}>
-                                    Trang Quản Trị
-                                </Link>
-                            )}
-                        </div>
+                                            {user.role === 'admin' && (
+                                                <Link to="/admin" style={{ textDecoration: 'none' }} onClick={() => setShowUserMenu(false)}>
+                                                    <div style={menuItemStyle}>Trang Quản Trị</div>
+                                                </Link>
+                                            )}
+                                            <button 
+                                                onClick={() => { setShowPasswordModal(true); setShowUserMenu(false); }}
+                                                style={menuButtonStyle}>
+                                                Đổi mật khẩu
+                                            </button>
+
+                                            <div style={{ borderTop: '1px solid #eee', margin: '5px 0' }}></div>
+                                            
+                                            <button 
+                                                onClick={() => { handleLogout(); setShowUserMenu(false); }}
+                                                style={{ ...menuButtonStyle, color: '#dc3545' }}>
+                                                Đăng xuất
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         ) : (
-                        <Link to="/login">
-                            <button className="btn-primary">Đăng nhập</button>
-                        </Link>
+                            <Link to="/login">
+                                <button className="btn-primary" style={{ padding: '8px 20px', borderRadius: '20px' }}>Đăng nhập</button>
+                            </Link>
                         )}
                     </div>
                 </div>
             </header>
-
+            {showPasswordModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <h2>Đổi mật khẩu</h2>
+                        <form onSubmit={handleChangePassword}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Mật khẩu mới:</label>
+                                <input 
+                                    className="input-title"
+                                    type="password" 
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required
+                                    placeholder="Tối thiểu 6 ký tự"
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Xác nhận mật khẩu:</label>
+                                <input className="input-title"type="password" value={confirmPassword}onChange={(e) => setConfirmPassword(e.target.value)}requiredplaceholder="Nhập lại mật khẩu mới"style={{ width: '100%' }}/>
+                            </div>
+                            <div className="modal-actions">
+                                <button type="button" className="btn-secondary" onClick={() => {
+                                    setShowPasswordModal(false);
+                                    setNewPassword("");
+                                    setConfirmPassword("");
+                                }}>Hủy</button>
+                                <button type="submit" className="btn-primary">Cập nhật</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
             {showModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <h2>{isEditingPost ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}</h2>
                         <form onSubmit={handlePostSubmit}>
                             <div style={{ marginBottom: '10px' }}>
-                                <input 
-                                    className="input-title"
-                                    type="text" 
-                                    placeholder="Tiêu đề bài viết..." 
-                                    value={newTitle}
-                                    maxLength={MAX_TITLE_LENGTH} 
-                                    onChange={(e) => setNewTitle(e.target.value)}
-                                    required
-                                    style={{ width: '100%', marginBottom: '5px' }} 
-                                />
+                                <input className="input-title"type="text" placeholder="Tiêu đề bài viết..." value={newTitle}maxLength={MAX_TITLE_LENGTH} onChange={(e) => setNewTitle(e.target.value)}requiredstyle={{ width: '100%', marginBottom: '5px' }}/>
                                 <div style={{ textAlign: 'right', fontSize: '12px', color: newTitle.length >= MAX_TITLE_LENGTH ? 'red' : '#666' }}>
                                     {newTitle.length} / {MAX_TITLE_LENGTH}
                                 </div>
                             </div>
                             <div style={{ marginBottom: '10px' }}>
-                                <textarea 
-                                    className="input-content"
-                                    placeholder="Nội dung..." 
-                                    rows="5"
-                                    value={newContent}
-                                    maxLength={MAX_CONTENT_LENGTH} 
-                                    onChange={(e) => setNewContent(e.target.value)}
-                                    required
-                                    style={{ width: '100%', marginBottom: '5px' }}
+                                <textarea className="input-content"placeholder="Nội dung..." rows="5"value={newContent}maxLength={MAX_CONTENT_LENGTH} onChange={(e) => setNewContent(e.target.value)}requiredstyle={{ width: '100%', marginBottom: '5px' }}
                                 ></textarea>
                                 <div style={{ textAlign: 'right', fontSize: '12px', color: newContent.length >= MAX_CONTENT_LENGTH ? 'red' : '#666' }}>
                                     {newContent.length} / {MAX_CONTENT_LENGTH}
@@ -836,25 +915,12 @@ function Home() {
                             placeholder="Tìm kiếm bài viết..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ 
-                                flex: 1, 
-                                padding: '10px', 
-                                borderRadius: '8px', 
-                                border: '1px solid #ddd' 
-                            }}
-                        />
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}/>
                         <button type="submit" className="btn-primary">
                             Tìm kiếm
                         </button>
                         {appliedSearch && (
-                            <button 
-                                type="button" 
-                                className="btn-secondary"
-                                onClick={() => {
-                                    setSearchTerm("");
-                                    setAppliedSearch("");
-                                    setPage(1);
-                                }}>
+                            <button type="button" className="btn-secondary"onClick={() => { setSearchTerm(""); setAppliedSearch(""); setPage(1);}}>
                                 Xóa lọc
                             </button>
                         )}
@@ -994,7 +1060,6 @@ function Home() {
                                         onPin={handlePinComment}
                                         onEdit={handleEditComment}
                                         onDelete={handleDeleteComment}
-                                        
                                         postAuthorId={currentPostForComment?.author_id}
                                         currentUserId={user?.id}
                                     />
