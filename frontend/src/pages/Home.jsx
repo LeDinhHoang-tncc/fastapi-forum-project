@@ -3,6 +3,25 @@ import api from '../api';
 import '../App.css';
 import { Link } from 'react-router-dom';
 
+    const Badge = ({ badge }) => {
+        if (!badge) return null;
+        return (
+            <span style={{
+                backgroundColor: badge.color,
+                color: 'white',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                marginLeft: '5px',
+                fontWeight: 'bold',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px'
+            }}>
+                {badge.name}
+            </span>
+        );
+    };
 
 const dropdownStyles = {
     menuContainer: { position: 'relative', display: 'inline-block' },
@@ -75,17 +94,13 @@ const CommentItem = ({ comment, onReply, onVote, onPin, onEdit, onDelete, postAu
 
             <div style={{ flex: 1 }}>
                 <div style={{ 
-                    backgroundColor: isDeleted ? '#f0f2f5' : (comment.is_pinned ? '#f0f9ff' : '#f0f2f5'), 
-                    padding: '8px 12px', 
-                    borderRadius: '12px',
-                    position: 'relative',
-                    border: comment.is_pinned ? '1px solid #bae6fd' : 'none'
+                    backgroundColor: isDeleted ? '#f0f2f5' : (comment.is_pinned ? '#f0f9ff' : '#f0f2f5'), padding: '8px 12px', borderRadius: '12px',position: 'relative', border: comment.is_pinned ? '1px solid #bae6fd' : 'none'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
                                 {comment.author_display_name || comment.author_name}
-                        
+                                <Badge badge={comment.badge}/>
                                 {isAdmin && (
                                     <span style={{ color: 'red', fontSize: '11px', marginLeft: '5px' }}>
                                         (ID: {comment.author_id})
@@ -901,16 +916,20 @@ function Home() {
                                     
                                     <div className="post-meta">
                                         <span>Đăng bởi <strong className="author-name">{post.author_name}</strong>
-                                            <span style={{ marginLeft: '8px', color: '#000', fontWeight: 'bold', fontSize: '0.9em', backgroundColor: '#e6ffa2', padding: '2px 6px', borderRadius: '4px' }}>
-                                                ★ {post.reputation}
-                                            </span>
+
+                                            <Badge badge={post.badge}/>
                                         </span>
                                         <span className="separator">•</span>
                                         <span>{formatTimeAgo(post.created_at)}</span>
                                         {user && user.role === 'admin' && (
+                                            <>
+                                            <span style={{ marginLeft: '8px', color: '#000', fontWeight: 'bold', fontSize: '0.9em', backgroundColor: '#e6ffa2', padding: '2px 6px', borderRadius: '4px' }}>
+                                                ★ {post.reputation}  
+                                            </span>
                                             <span style={{ color: 'red', fontSize: '12px', marginLeft: '8px', background: '#ffebee', padding: '2px 5px', borderRadius: '4px' }}>
                                                 ID: {post.author_id}
                                             </span>
+                                            </>
                                         )}
                                     </div>
                                     <hr className="divider"/>

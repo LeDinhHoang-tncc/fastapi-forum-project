@@ -119,6 +119,7 @@ def get_posts(
             "author_id": post.author_id,
             "author_name": author_name,
             "reputation": post.author.reputation if post.author else 0,
+            "badge": get_badge(post.author.reputation) if post.author else None,
             "is_pinned": post.is_pinned,
             "vote_count": vote_count,  
             "has_voted": has_voted,
@@ -181,13 +182,10 @@ def delete_post(
     current_user: User = Depends(get_current_user)
 ):
     post = db.query(Post).filter(Post.id == post_id).first()
-    
     if not post:
         raise HTTPException(status_code=404, detail="Bài viết không tồn tại")
     if post.author_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(
-            status_code=403, detail="Bạn không có quyền xóa bài viết này")
-    
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xóa bài viết này")
     db.delete(post)
     db.commit()
 
@@ -208,17 +206,12 @@ def update_post(
     if post.author_id != current_user.id:
         raise HTTPException(status_code=403, detail="Bạn không có quyền sửa bài viết này")
 
-    if len(post_update.title) > 200:
-        raise HTTPException(status_code=400, detail="Tiêu đề quá dài")
-    if len(post_update.content) > 5000:
-        raise HTTPException(status_code=400, detail="Nội dung quá dài")
-
+    if len(post_update.title) > 200: raise HTTPException(status_code=400, detail="Tiêu đề quá dài")
+    if len(post_update.content) > 5000: raise HTTPException(status_code=400, detail="Nội dung quá dài")
     post.title = post_update.title
     post.content = post_update.content
-    
     db.commit()
     db.refresh(post)
-    
     return {"message": "Cập nhật bài viết thành công", "id": post.id}
 
 @router.get("/{post_id}")
@@ -305,3 +298,12 @@ def unpin_post(
     db.commit()
 
     return {"message": f"Bỏ ghim bài viết {post.title} thành công"}
+
+def get_badge(reputation: int):
+    if reputation >= 100:
+        return {"name": "Chuyên gia", "color": "#ff4500"}
+    elif reputation >= 50:
+        return {"name": "Mới nổi", "color": "#8a2be2"}
+    elif reputation >= 1:
+        return {"name": "Tích cực", "color": "#2ecc71"}
+    return None

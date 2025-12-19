@@ -133,6 +133,7 @@ def get_comments(
             "vote_count": vote_count,  
             "has_voted": has_voted,
             "is_pinned": c.is_pinned,
+            "badge": get_badge(post.author.reputation) if post.author else None,
             "is_deleted": c.is_deleted
         })
     result.sort(key=lambda x: (x['is_pinned'], x['vote_count'], x['created_at']), reverse=True)
@@ -205,3 +206,12 @@ def create_comment(
         "message": "Tạo bình luận thành công",
         "comment_id": new_comment.id
     }
+
+def get_badge(reputation: int):
+    if reputation >= 100:
+        return {"name": "Chuyên gia", "color": "#ff4500"}
+    elif reputation >= 50:
+        return {"name": "Mới nổi", "color": "#8a2be2"}
+    elif reputation >= 1:
+        return {"name": "Tích cực", "color": "#2ecc71"}
+    return None
